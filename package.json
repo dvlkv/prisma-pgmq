@@ -50,7 +50,7 @@
     "@typescript-eslint/eslint-plugin": "^8.35.0",
     "@typescript-eslint/parser": "^8.35.0",
     "eslint": "^9.29.0",
-    "prisma": "^5.0.0",
+    "prisma": "^7.4.2",
     "rimraf": "^6.0.1",
     "tsup": "^8.5.0",
     "typescript": "^5.8.3",
