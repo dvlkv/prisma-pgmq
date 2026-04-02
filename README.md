@@ -8,6 +8,13 @@ A TypeScript library that provides type-safe methods for PostgreSQL Message Queu
 - 📦 **Easy to use**: Simple API with functional methods
 - 🔌 **Prisma Integration**: Seamless integration with your existing Prisma setup
 
+## Compatibility
+
+| prisma-pgmq | Prisma ORM | Node.js   |
+|-------------|------------|-----------|
+| v2.x        | v7+        | >= 20.19  |
+| v1.x        | v5 / v6    | >= 16     |
+
 ## Installation
 
 ```bash
@@ -21,8 +28,8 @@ yarn add prisma-pgmq
 ### Prerequisites
 
 - PostgreSQL database with the PGMQ extension installed
-- Prisma Client v5.0.0 or higher
-- Node.js 16+ 
+- Prisma Client v7.0.0 or higher
+- Node.js 20.19+
 
 > **Enabling the PGMQ extension via Prisma**
 >
@@ -30,13 +37,12 @@ yarn add prisma-pgmq
 >
 > ```prisma
 > generator client {
->   provider        = "prisma-client-js"
->   previewFeatures = ["postgresqlExtensions"]
+>   provider = "prisma-client"
+>   output   = "./generated/prisma/client"
 > }
 >
 > datasource db {
 >   provider   = "postgresql"
->   url        = env("DATABASE_URL")
 >   extensions = [pgmq]
 > }
 > ```
@@ -48,7 +54,7 @@ yarn add prisma-pgmq
 ### Functional API
 
 ```typescript
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './generated/prisma/client';
 import { pgmq } from 'prisma-pgmq';
 
 const prisma = new PrismaClient();
@@ -275,7 +281,7 @@ interface QueueInfo {
 ### Basic Worker Pattern
 
 ```typescript
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './generated/prisma/client';
 import { pgmq } from 'prisma-pgmq';
 
 const prisma = new PrismaClient();

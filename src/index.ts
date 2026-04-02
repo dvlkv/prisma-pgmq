@@ -1,4 +1,5 @@
-export { 
+export {
+  PgmqClient,
   Task,
   MessageRecord,
   QueueInfo,
