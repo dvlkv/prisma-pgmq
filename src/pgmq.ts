@@ -12,7 +12,7 @@ export interface PgmqClient {
 
 // Message record type based on PGMQ documentation
 export interface MessageRecord {
-  msg_id: number;
+  msg_id: bigint;
   read_ct: number;
   enqueued_at: Date;
   vt: Date;
@@ -37,10 +37,10 @@ export interface QueueInfo {
   is_unlogged: boolean;
 }
 
-export async function send(tx: PgmqClient, queueName: string, msg: Task, delay?: number | Date): Promise<number> {
+export async function send(tx: PgmqClient, queueName: string, msg: Task, delay?: number | Date): Promise<bigint> {
     const delayRepr = typeof delay === 'number' ? sql`${delay}::integer` : sql`${delay}`;
     const delaySql = delay ? sql`, ${delayRepr}` : sql``;
-    const result: { send: number }[] = await tx.$queryRaw`SELECT pgmq.send(${queueName}, ${msg}${delaySql})`;
+    const result: { send: bigint }[] = await tx.$queryRaw`SELECT pgmq.send(${queueName}, ${msg}${delaySql})`;
     const firstResult = result[0];
     if (!firstResult) {
         throw new Error('No result returned from pgmq.send');
@@ -48,10 +48,10 @@ export async function send(tx: PgmqClient, queueName: string, msg: Task, delay?:
     return firstResult.send;
 }
 
-export async function sendBatch(tx: PgmqClient, queueName: string, msgs: Task[], delay?: number | Date): Promise<number[]> {
+export async function sendBatch(tx: PgmqClient, queueName: string, msgs: Task[], delay?: number | Date): Promise<bigint[]> {
     const delayRepr = typeof delay === 'number' ? sql`${delay}::integer` : sql`${delay}`;
     const delaySql = delay ? sql`, ${delayRepr}` : sql``;
-    const result: { send_batch: number }[] = await tx.$queryRaw`SELECT pgmq.send_batch(${queueName}, ${msgs}${delaySql})`;
+    const result: { send_batch: bigint }[] = await tx.$queryRaw`SELECT pgmq.send_batch(${queueName}, ${msgs}${delaySql})`;
     return result.map(a => a.send_batch);
 }
 
@@ -85,8 +85,8 @@ export function pop(tx: PgmqClient, queueName: string): Promise<MessageRecord[]>
 
 // Deleting/Archiving Messages
 
-export async function deleteMessage(tx: PgmqClient, queueName: string, msgId: number): Promise<boolean> {
-    const result: { delete: boolean }[] = await tx.$queryRaw`SELECT pgmq.delete(${queueName}, ${msgId}::integer)`;
+export async function deleteMessage(tx: PgmqClient, queueName: string, msgId: bigint | number): Promise<boolean> {
+    const result: { delete: boolean }[] = await tx.$queryRaw`SELECT pgmq.delete(${queueName}, ${msgId}::bigint)`;
     const firstResult = result[0];
     if (!firstResult) {
         throw new Error('No result returned from pgmq.delete');
@@ -94,8 +94,8 @@ export async function deleteMessage(tx: PgmqClient, queueName: string, msgId: nu
     return firstResult.delete;
 }
 
-export async function deleteBatch(tx: PgmqClient, queueName: string, msgIds: number[]): Promise<number[]> {
-    const result: { delete: number }[] = await tx.$queryRaw`SELECT pgmq.delete(${queueName}, ${msgIds}::integer[])`;
+export async function deleteBatch(tx: PgmqClient, queueName: string, msgIds: (bigint | number)[]): Promise<bigint[]> {
+    const result: { delete: bigint }[] = await tx.$queryRaw`SELECT pgmq.delete(${queueName}, ${msgIds}::bigint[])`;
     return result.map(a => a.delete);
 }
 
@@ -108,8 +108,8 @@ export async function purgeQueue(tx: PgmqClient, queueName: string): Promise<num
     return firstResult.purge_queue;
 }
 
-export async function archive(tx: PgmqClient, queueName: string, msgId: number): Promise<boolean> {
-    const result: { archive: boolean }[] = await tx.$queryRaw`SELECT pgmq.archive(${queueName}, ${msgId}::integer)`;
+export async function archive(tx: PgmqClient, queueName: string, msgId: bigint | number): Promise<boolean> {
+    const result: { archive: boolean }[] = await tx.$queryRaw`SELECT pgmq.archive(${queueName}, ${msgId}::bigint)`;
     const firstResult = result[0];
     if (!firstResult) {
         throw new Error('No result returned from pgmq.archive');
@@ -117,8 +117,8 @@ export async function archive(tx: PgmqClient, queueName: string, msgId: number):
     return firstResult.archive;
 }
 
-export async function archiveBatch(tx: PgmqClient, queueName: string, msgIds: number[]): Promise<number[]> {
-    const result: { archive: number }[] = await tx.$queryRaw`SELECT pgmq.archive(${queueName}, ${msgIds}::integer[])`;
+export async function archiveBatch(tx: PgmqClient, queueName: string, msgIds: (bigint | number)[]): Promise<bigint[]> {
+    const result: { archive: bigint }[] = await tx.$queryRaw`SELECT pgmq.archive(${queueName}, ${msgIds}::bigint[])`;
     return result.map(a => a.archive);
 }
 
@@ -159,10 +159,10 @@ export async function dropQueue(tx: PgmqClient, queueName: string): Promise<bool
 export async function setVt(
     tx: PgmqClient,
     queueName: string,
-    msgId: number,
+    msgId: bigint | number,
     vtOffset: number
 ): Promise<MessageRecord> {
-    const result: MessageRecord[] = await tx.$queryRaw`SELECT * FROM pgmq.set_vt(${queueName}, ${msgId}::integer, ${vtOffset}::integer)`;
+    const result: MessageRecord[] = await tx.$queryRaw`SELECT * FROM pgmq.set_vt(${queueName}, ${msgId}::bigint, ${vtOffset}::integer)`;
     const firstResult = result[0];
     if (!firstResult) {
         throw new Error('No result returned from pgmq.set_vt');
