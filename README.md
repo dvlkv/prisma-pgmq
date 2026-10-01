@@ -12,7 +12,8 @@ A TypeScript library that provides type-safe methods for PostgreSQL Message Queu
 
 | prisma-pgmq | Prisma ORM | Node.js   |
 |-------------|------------|-----------|
-| v2.x        | v7+        | >= 20.19  |
+| v3.x        | v8         | >= 22.18  |
+| v2.x        | v7         | >= 20.19  |
 | v1.x        | v5 / v6    | >= 16     |
 
 ## Installation
@@ -27,48 +28,58 @@ yarn add prisma-pgmq
 
 ### Prerequisites
 
-- PostgreSQL database with the PGMQ extension installed
-- Prisma Client v7.0.0 or higher
-- Node.js 20.19+
+- PostgreSQL 15+ with the PGMQ extension installed (`CREATE EXTENSION pgmq;`)
+- Prisma ORM v8 (`@prisma/orm-postgres`)
+- Node.js 22.18+
 
-> **Enabling the PGMQ extension via Prisma**
->
-> You can manage PostgreSQL extensions (including PGMQ) directly in your Prisma schema using the `postgresqlExtensions` preview feature. Add the extension to your `datasource` block in `schema.prisma`:
->
-> ```prisma
-> generator client {
->   provider = "prisma-client"
->   output   = "./generated/prisma/client"
-> }
->
-> datasource db {
->   provider   = "postgresql"
->   extensions = [pgmq]
-> }
-> ```
->
-> For more details, see the [Prisma documentation on PostgreSQL extensions](https://www.prisma.io/docs/orm/prisma-schema/postgresql-extensions).
+> Using Prisma 7? Install `prisma-pgmq@2` (maintained on the [`v2`](https://github.com/dvlkv/prisma-pgmq/tree/v2) branch).
 
 ## Quick Start
 
-### Functional API
-
 ```typescript
-import { PrismaClient } from './generated/prisma/client';
+import postgres from '@prisma/orm-postgres/runtime';
+import type { Contract } from './src/prisma/contract.d';
+import contractJson from './src/prisma/contract.json' with { type: 'json' };
 import { pgmq } from 'prisma-pgmq';
 
-const prisma = new PrismaClient();
+export const db = postgres<Contract>({
+  contractJson,
+  url: process.env['DATABASE_URL']!,
+});
 
 // Create a queue
-await pgmq.createQueue(prisma, 'my-work-queue');
+await pgmq.createQueue(db, 'my-work-queue');
 
 // Send a message
-await pgmq.send(prisma, 'my-work-queue', {
+await pgmq.send(db, 'my-work-queue', {
   userId: 123,
   action: 'send-email',
   email: 'user@example.com'
 });
 ```
+
+### Transactions
+
+Prisma 8 transaction contexts do not carry the raw SQL lane, so bind the transaction to the client with `inTransaction`:
+
+```typescript
+import { pgmq, inTransaction } from 'prisma-pgmq';
+
+await db.transaction(async (tx) => {
+  const q = inTransaction(db, tx);
+  // ...your own writes via tx.orm / tx.sql
+  await pgmq.send(q, 'welcome-emails', { email: 'user@example.com' });
+});
+```
+
+In the API reference below, `tx` is either the Prisma client (`db`) or the result of `inTransaction(db, tx)`.
+
+## Upgrading from v2
+
+- Pass the Prisma 8 client (`postgres<Contract>(...)`) instead of `PrismaClient`.
+- Wrap transaction contexts with `inTransaction(db, tx)` before passing them to `pgmq.*`.
+- `@prisma/client` is no longer a peer dependency; `@prisma/orm-postgres` v8 is.
+- The rest of the API (function names, arguments and return types) is unchanged.
 
 ## API Reference
 
@@ -246,7 +257,7 @@ type Task = Record<string, unknown>;
 ### `MessageRecord`
 ```typescript
 interface MessageRecord {
-  msg_id: number;
+  msg_id: bigint;
   read_ct: number;
   enqueued_at: Date;
   vt: Date;
@@ -281,14 +292,12 @@ interface QueueInfo {
 ### Basic Worker Pattern
 
 ```typescript
-import { PrismaClient } from './generated/prisma/client';
 import { pgmq } from 'prisma-pgmq';
-
-const prisma = new PrismaClient();
+import { db } from './src/prisma/db';
 
 // Producer
 async function sendTask(taskData: any) {
-  await pgmq.send(prisma, 'work-queue', {
+  await pgmq.send(db, 'work-queue', {
     type: 'process-user-data',
     data: taskData,
     timestamp: Date.now()
@@ -297,17 +306,17 @@ async function sendTask(taskData: any) {
 
 // Consumer
 async function processMessages() {
-  const messages = await pgmq.readWithPoll(prisma, 'work-queue', 30, 5, 10, 1000);
+  const messages = await pgmq.readWithPoll(db, 'work-queue', 30, 5, 10, 1000);
   for (const message of messages) {
     try {
       // Process the message
       await handleTask(message.message);
       // Delete on success
-      await pgmq.deleteMessage(prisma, 'work-queue', message.msg_id);
+      await pgmq.deleteMessage(db, 'work-queue', message.msg_id);
     } catch (error) {
       console.error('Task failed:', error);
       // Archive failed messages for later analysis
-      await pgmq.archive(prisma, 'work-queue', message.msg_id);
+      await pgmq.archive(db, 'work-queue', message.msg_id);
     }
   }
 }
@@ -324,7 +333,7 @@ async function handleTask(task: any) {
 // Schedule a message for later processing
 const futureDate = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-await pgmq.send(prisma, 'scheduled-tasks', {
+await pgmq.send(db, 'scheduled-tasks', {
   type: 'send-reminder',
   userId: 123,
   reminder: 'Your subscription expires tomorrow'

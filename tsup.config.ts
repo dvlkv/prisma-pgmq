@@ -8,6 +8,6 @@ export default defineConfig({
   clean: true,
   splitting: false,
   minify: false,
-  external: ['@prisma/client'],
+  external: ['@prisma/orm-postgres'],
   outDir: 'dist',
 });

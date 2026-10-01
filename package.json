@@ -1,6 +1,6 @@
 {
   "name": "prisma-pgmq",
-  "version": "2.1.0",
+  "version": "3.0.0",
   "description": "A Prisma PGMQ implementation providing type-safe message queue operations",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -41,23 +41,22 @@
   },
   "homepage": "https://github.com/dvlkv/prisma-pgmq#readme",
   "peerDependencies": {
-    "@prisma/client": ">=7.0.0"
+    "@prisma/orm-postgres": "^8.0.0-rc.14"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@prisma/client": "^7.6.0",
+    "@prisma/orm-postgres": "8.0.0-rc.14",
     "@types/node": "^25.5.0",
     "@typescript-eslint/eslint-plugin": "^8.58.0",
     "@typescript-eslint/parser": "^8.58.0",
     "eslint": "^10.1.0",
-    "prisma": "^7.6.0",
     "rimraf": "^6.1.3",
     "tsup": "^8.5.1",
     "typescript": "^6.0.2",
     "typescript-eslint": "^8.58.0"
   },
   "engines": {
-    "node": ">=20.19.0"
+    "node": ">=22.18.0"
   },
   "packageManager": "pnpm@9.15.4+sha512.b2dc20e2fc72b3e18848459b37359a32064663e5627a51e4c74b2c29dd8e8e0491483c3abb40789cfd578bf362fb6ba8261b05f0387d76792ed6e23ea3b1b6a0"
 }
